@@ -2,6 +2,7 @@
 This is codimite assessment answer 
 
 #first 
+
 #How to automate the process using TFActions.
 1. Setting triggers action like code push/pulls, scheduled times, and manual events to initiate the automation.
 
@@ -22,6 +23,7 @@ This is codimite assessment answer
     Notifications: Use actions to notify team members of the success or failure of the process via email or other third-party systems.
 
 #Second
+
 #secure the setup.
 
 1.	VPC Isolation: Custom VPC can provide network isolation, It is possible to ensure that access to different subnets is controlled. Using a private subnet for        CloudSQL and Redis can ensure that these resources are not publicly accessible.
