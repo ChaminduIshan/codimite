@@ -45,16 +45,16 @@ jobs:
       - name: Set up Node.js (or your specific runtime)
         uses: actions/setup-node@v3
         with:
-          node-version: '16'  # Adjust according to your project runtime
+          node-version: '16'  
 
       - name: Install dependencies
-        run: npm install  # Modify according to your package manager
+        run: npm install  
 
       - name: Run linting
-        run: npm run lint  # Adjust for your linting command
+        run: npm run lint  
 
       - name: Run tests
-        run: npm test  # Adjust for your test command
+        run: npm test  
 
   deploy:
     needs: [build_and_push, lint_and_test]
@@ -72,7 +72,7 @@ jobs:
       - name: Set up kubectl
         uses: google-github-actions/setup-kubectl@v4
         with:
-          version: '1.24.0'  # Set the version of kubectl
+          version: '1.24.0'  
 
       - name: Authenticate with GKE
         run: |

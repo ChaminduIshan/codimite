@@ -1,0 +1,39 @@
+name: Docker Image Scan with Trivy
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  trivy-scan:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Install Trivy
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y curl
+          curl -sfL https://github.com/aquasecurity/trivy/releases/download/v0.39.0/trivy_0.39.0_Linux-64bit.deb -o trivy.deb
+          sudo dpkg -i trivy.deb
+          trivy --version
+
+      - name: Run Trivy scan on Docker image
+        run: |
+          
+          IMAGE_NAME="codimite:latest"
+          docker pull $IMAGE_NAME
+          trivy image --severity HIGH,CRITICAL --no-progress $IMAGE_NAME
+
+      - name: Post-scan cleanup
+        run: |
+          rm trivy.deb
