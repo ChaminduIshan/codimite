@@ -1,6 +1,7 @@
 # codimite
 This is codimite assessment answer 
-#firt 
+
+#first 
 #How to automate the process using TFActions.
 1. Setting triggers action like code push/pulls, scheduled times, and manual events to initiate the automation.
 
