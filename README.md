@@ -46,7 +46,7 @@ This is Codimite assessment answer
 
 3.	Cost Management: Track spending and avoid unexpected expenses using Google Cloud's budgets and alerts tools. 
 
-#Thurd
+#Third
 
 # How to configure the deployment through ArgoCD
 
