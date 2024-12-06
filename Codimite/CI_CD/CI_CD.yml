@@ -1,4 +1,4 @@
-name: CI/CD Pipeline for Microservice
+name: CI/CD Pipeline for GKE with ArgoCD
 
 on:
   push:
@@ -9,60 +9,85 @@ on:
       - main
 
 jobs:
-  build-and-deploy:
+  build_and_push:
     runs-on: ubuntu-latest
-    environment: production
-
     steps:
-      # Checkout the repository
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v2
 
-      # Set up Docker Buildx for building images
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
-      # Set up Google Cloud credentials
-      - name: Set up Google Cloud credentials
-        uses: google-github-actions/setup-gcloud@v2
+      - name: Set up Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v3
         with:
-          credentials_json: ${{ secrets.GCP_CREDENTIALS }}
           project_id: ${{ secrets.GCP_PROJECT_ID }}
+          credentials_json: ${{ secrets.GCP_CREDENTIALS_JSON }}
 
-      # Set up Docker credentials for GCR
-      - name: Configure Docker to use GCR
-        run: | 
+      - name: Configure Docker for Google Cloud
+        run: |
           gcloud auth configure-docker
 
-      # Run linting (Assuming we use ESLint or similar for a Node.js project)
-      - name: Run linting
-        run: |
-          npm install
-          npm run lint
-
-      # Run tests (Assuming we use Jest for testing)
-      - name: Run tests
-        run: |
-          npm install
-          npm run test
-
-      # Build the Docker image
-      - name: Build Docker image
+      - name: Build Docker Image
         run: |
           docker build -t gcr.io/${{ secrets.GCP_PROJECT_ID }}/my-microservice:${{ github.sha }} .
 
-      # Push Docker image to GCR
-      - name: Push Docker image to GCR
+      - name: Push Docker Image to GCR
         run: |
           docker push gcr.io/${{ secrets.GCP_PROJECT_ID }}/my-microservice:${{ github.sha }}
 
-      # Deploy to GKE using ArgoCD
-      - name: Deploy to GKE using ArgoCD
+  lint_and_test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Node.js (or your specific runtime)
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16'  # Adjust according to your project runtime
+
+      - name: Install dependencies
+        run: npm install  # Modify according to your package manager
+
+      - name: Run linting
+        run: npm run lint  # Adjust for your linting command
+
+      - name: Run tests
+        run: npm test  # Adjust for your test command
+
+  deploy:
+    needs: [build_and_push, lint_and_test]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v3
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          credentials_json: ${{ secrets.GCP_CREDENTIALS_JSON }}
+
+      - name: Set up kubectl
+        uses: google-github-actions/setup-kubectl@v4
+        with:
+          version: '1.24.0'  # Set the version of kubectl
+
+      - name: Authenticate with GKE
         run: |
-          # Set up kubectl
-          gcloud container clusters get-credentials ${{ secrets.GKE_CLUSTER_NAME }} --zone ${{ secrets.GKE_ZONE }} --project ${{ secrets.GCP_PROJECT_ID }}
+          gcloud container clusters get-credentials ${{ secrets.GKE_CLUSTER_NAME }} \
+            --zone ${{ secrets.GKE_ZONE }} --project ${{ secrets.GCP_PROJECT_ID }}
 
-          # Trigger ArgoCD sync (Assuming the ArgoCD CLI is set up and configured)
-          argocd login ${{ secrets.ARGOCD_SERVER }} --username ${{ secrets.ARGOCD_USERNAME }} --password ${{ secrets.ARGOCD_PASSWORD }}
-          argocd app sync my-app --auth-token ${{ secrets.ARGOCD_AUTH_TOKEN }}
+      - name: Install ArgoCD CLI
+        run: |
+          curl -sSL -o /usr/local/bin/argocd https://github.com/argoproj/argo-cd/releases/download/v2.8.0/argocd-linux-amd64
+          chmod +x /usr/local/bin/argocd
 
+      - name: Log in to ArgoCD
+        run: |
+          argocd login ${{ secrets.ARGOCD_SERVER }} --username ${{ secrets.ARGOCD_USER }} --password ${{ secrets.ARGOCD_PASSWORD }} --insecure
+
+      - name: Sync ArgoCD Application
+        run: |
+          argocd app sync my-microservice --revision ${{ github.sha }} --prune
